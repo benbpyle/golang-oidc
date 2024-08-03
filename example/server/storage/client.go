@@ -174,7 +174,11 @@ func NativeClient(id string, redirectURIs ...string) *Client {
 func WebClient(id, secret string, redirectURIs ...string) *Client {
 	if len(redirectURIs) == 0 {
 		redirectURIs = []string{
-			"http://localhost:9999/auth/callback",
+			// "https://example-pool.auth.us-west-2.amazoncognito.com/oauth2/idpresponse",
+			//"http://localhost:9999/auth/callback",
+			"https://openidconnect.net/callback",
+			"https://iclass-test.auth.us-west-2.amazoncognito.com/oauth2/idpresponse",
+			"http://localhost:3000",
 		}
 	}
 	return &Client{

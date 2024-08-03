@@ -65,9 +65,9 @@ func SetupServer(issuer string, storage Storage, logger *slog.Logger, wrapServer
 		log.Fatal(err)
 	}
 
-	//the provider will only take care of the OpenID Protocol, so there must be some sort of UI for the login process
-	//for the simplicity of the example this means a simple page with username and password field
-	//be sure to provide an IssuerInterceptor with the IssuerFromRequest from the OP so the login can select / and pass it to the storage
+	// the provider will only take care of the OpenID Protocol, so there must be some sort of UI for the login process
+	// for the simplicity of the example this means a simple page with username and password field
+	// be sure to provide an IssuerInterceptor with the IssuerFromRequest from the OP so the login can select / and pass it to the storage
 	l := NewLogin(storage, op.AuthCallbackURL(provider), op.NewIssuerInterceptor(provider.IssuerFromRequest))
 
 	// regardless of how many pages / steps there are in the process, the UI must be registered in the router,
@@ -130,7 +130,7 @@ func newOP(storage op.Storage, issuer string, key [32]byte, logger *slog.Logger,
 	}
 	handler, err := op.NewOpenIDProvider(issuer, config, storage,
 		append([]op.Option{
-			//we must explicitly allow the use of the http issuer
+			// we must explicitly allow the use of the http issuer
 			op.WithAllowInsecure(),
 			// as an example on how to customize an endpoint this will change the authorization_endpoint from /authorize to /auth
 			op.WithCustomAuthEndpoint(op.NewEndpoint("auth")),

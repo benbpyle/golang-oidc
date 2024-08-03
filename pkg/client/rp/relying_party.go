@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 
@@ -22,7 +23,7 @@ import (
 
 const (
 	idTokenKey = "id_token"
-	stateParam = "state"
+	stateParam = "cognito"
 	pkceCode   = "pkce"
 )
 
@@ -79,12 +80,15 @@ type HasUnauthorizedHandler interface {
 	UnauthorizedHandler() func(w http.ResponseWriter, r *http.Request, desc string, state string)
 }
 
-type ErrorHandler func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, state string)
-type UnauthorizedHandler func(w http.ResponseWriter, r *http.Request, desc string, state string)
+type (
+	ErrorHandler        func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, state string)
+	UnauthorizedHandler func(w http.ResponseWriter, r *http.Request, desc string, state string)
+)
 
 var DefaultErrorHandler ErrorHandler = func(w http.ResponseWriter, r *http.Request, errorType string, errorDesc string, state string) {
 	http.Error(w, errorType+": "+errorDesc, http.StatusInternalServerError)
 }
+
 var DefaultUnauthorizedHandler UnauthorizedHandler = func(w http.ResponseWriter, r *http.Request, desc string, state string) {
 	http.Error(w, desc, http.StatusUnauthorized)
 }
@@ -444,6 +448,8 @@ func verifyTokenResponse[C oidc.IDClaims](ctx context.Context, token *oauth2.Tok
 	ctx, span := client.Tracer.Start(ctx, "verifyTokenResponse")
 	defer span.End()
 
+	logrus.Infof("(Claims)=%v", token)
+
 	if rp.IsOAuth2Only() {
 		return &oidc.Tokens[C]{Token: token}, nil
 	}
@@ -473,6 +479,11 @@ func CodeExchange[C oidc.IDClaims](ctx context.Context, code string, rp RelyingP
 
 	ctx, oauthExchangeSpan := client.Tracer.Start(ctx, "OAuthExchange")
 	token, err := rp.OAuthConfig().Exchange(ctx, code, codeOpts...)
+
+	logrus.WithFields(logrus.Fields{
+		"err":   err,
+		"token": token,
+	}).Info("First token check")
 	if err != nil {
 		return nil, err
 	}
@@ -518,10 +529,11 @@ func CodeExchangeHandler[C oidc.IDClaims](callback CodeExchangeCallback[C], rp R
 		defer span.End()
 
 		state, err := tryReadStateCookie(w, r, rp)
-		if err != nil {
-			unauthorizedError(w, r, "failed to get state: "+err.Error(), state, rp)
-			return
-		}
+		logrus.Infof("(COOKIE)=%s", state)
+		// if err != nil {
+		// 	unauthorizedError(w, r, "failed to get state: "+err.Error(), state, rp)
+		// 	return
+		// }
 		if errValue := r.FormValue("error"); errValue != "" {
 			rp.ErrorHandler()(w, r, errValue, r.FormValue("error_description"), state)
 			return
@@ -548,7 +560,13 @@ func CodeExchangeHandler[C oidc.IDClaims](callback CodeExchangeCallback[C], rp R
 			}
 			codeOpts = append(codeOpts, WithClientAssertionJWT(assertion))
 		}
+
+		logrus.Infof("Pre-Code Exchange")
 		tokens, err := CodeExchange[C](r.Context(), r.FormValue("code"), rp, codeOpts...)
+		logrus.WithFields(logrus.Fields{
+			"err":    err,
+			"tokens": tokens,
+		}).Info("Tokens exchange")
 		if err != nil {
 			unauthorizedError(w, r, "failed to exchange token: "+err.Error(), state, rp)
 			return
@@ -617,6 +635,11 @@ func trySetStateCookie(w http.ResponseWriter, state string, rp RelyingParty) err
 }
 
 func tryReadStateCookie(w http.ResponseWriter, r *http.Request, rp RelyingParty) (state string, err error) {
+	logrus.WithFields(logrus.Fields{
+		"stateParam": stateParam,
+		// "form":       r.FormValue(stateParam),
+		"f": r.Header,
+	}).Info("Cookie handler")
 	if rp.CookieHandler() == nil {
 		return r.FormValue(stateParam), nil
 	}

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
+	"github.com/sirupsen/logrus"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	str "github.com/zitadel/oidc/v3/pkg/strings"
@@ -402,6 +403,7 @@ func RedirectToLogin(authReqID string, client Client, w http.ResponseWriter, r *
 
 // AuthorizeCallback handles the callback after authentication in the Login UI
 func AuthorizeCallback(w http.ResponseWriter, r *http.Request, authorizer Authorizer) {
+	println("YESSSSSSS")
 	ctx, span := tracer.Start(r.Context(), "AuthorizeCallback")
 	r = r.WithContext(ctx)
 	defer span.End()
@@ -422,6 +424,9 @@ func AuthorizeCallback(w http.ResponseWriter, r *http.Request, authorizer Author
 			authorizer)
 		return
 	}
+	logrus.WithFields(logrus.Fields{
+		"req": authReq,
+	}).Info("RETURNING")
 	AuthResponse(authReq, authorizer, w, r)
 }
 

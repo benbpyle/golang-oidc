@@ -37,11 +37,12 @@ type userStore struct {
 
 func NewUserStore(issuer string) UserStore {
 	hostname := strings.Split(strings.Split(issuer, "://")[1], ":")[0]
+	println("(Hostname)=%s", hostname)
 	return userStore{
 		users: map[string]*User{
 			"id1": {
 				ID:                "id1",
-				Username:          "test-user@" + hostname,
+				Username:          "test-user",
 				Password:          "verysecure",
 				FirstName:         "Test",
 				LastName:          "User",

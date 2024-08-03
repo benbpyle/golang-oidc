@@ -131,6 +131,8 @@ func NewStorageWithClients(userStore UserStore, clients map[string]*Client) *Sto
 
 // CheckUsernamePassword implements the `authenticate` interface of the login
 func (s *Storage) CheckUsernamePassword(username, password, id string) error {
+	println("Checking username")
+	println("(%s),(%s), (%s)", username, password, id)
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	request, ok := s.authRequests[id]
@@ -142,6 +144,9 @@ func (s *Storage) CheckUsernamePassword(username, password, id string) error {
 	// a plain text password.  For real world scenarios, be sure to have the password
 	// hashed and salted (e.g. using bcrypt)
 	user := s.userStore.GetUserByUsername(username)
+	println("Looking at the user")
+	println("%v", user)
+
 	if user != nil && user.Password == password {
 		// be sure to set user id into the auth request after the user was checked,
 		// so that you'll be able to get more information about the user after the login
@@ -161,6 +166,8 @@ func (s *Storage) CheckUsernamePasswordSimple(username, password string) error {
 	defer s.lock.Unlock()
 
 	user := s.userStore.GetUserByUsername(username)
+	println("Looking at the user")
+	println("%v", user)
 	if user != nil && user.Password == password {
 		return nil
 	}

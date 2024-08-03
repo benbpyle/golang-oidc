@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
-	"github.com/zitadel/logging"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/oauth2"
 
@@ -31,6 +31,7 @@ func Discover(ctx context.Context, issuer string, httpClient *http.Client, wellK
 	ctx, span := Tracer.Start(ctx, "Discover")
 	defer span.End()
 
+	logrus.Infof("(DE)=%s", oidc.DiscoveryEndpoint)
 	wellKnown := strings.TrimSuffix(issuer, "/") + oidc.DiscoveryEndpoint
 	if len(wellKnownUrl) == 1 && wellKnownUrl[0] != "" {
 		wellKnown = wellKnownUrl[0]
@@ -44,10 +45,6 @@ func Discover(ctx context.Context, issuer string, httpClient *http.Client, wellK
 	if err != nil {
 		return nil, err
 	}
-	if logger, ok := logging.FromContext(ctx); ok {
-		logger.Debug("discover", "config", discoveryConfig)
-	}
-
 	if discoveryConfig.Issuer != issuer {
 		return nil, oidc.ErrIssuerInvalid
 	}
